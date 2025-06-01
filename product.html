@@ -86,14 +86,14 @@
       qrImage.classList.add("hidden");
       downloadBtn.classList.add("hidden");
 
-      const response = await fetch("https://ayame.inipanel.my.id/api/get-qr-code", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ type })
-});
-
+      try {
+        const response = await fetch("https://ayame.inipanel.my.id/api/get-qr-code", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type })
+        });
 
         if (!response.ok) throw new Error("Gagal memuat QRIS");
 
@@ -102,9 +102,11 @@
         qrImage.classList.remove("hidden");
         downloadBtn.classList.remove("hidden");
 
+        // 🔧 Gunakan domain dari data.qrCodeUrl, bukan localhost!
         downloadBtn.onclick = () => {
           const filename = data.qrCodeUrl.split("/").pop();
-          const downloadUrl = `http://localhost:3000/download-qr?filename=${filename}`;
+          const baseUrl = new URL(data.qrCodeUrl).origin;
+          const downloadUrl = `${baseUrl}/download-qr?filename=${filename}`;
 
           const link = document.createElement("a");
           link.href = downloadUrl;
