@@ -1,13 +1,13 @@
 const express = require('express');
 const cors = require('cors');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 2009;
+const port = process.env.PORT || 8080;
 
-// ✅ CORS agar bisa diakses dari GitHub Pages
+// ✅ Konfigurasi CORS agar bisa diakses dari GitHub Pages
 const corsOptions = {
   origin: 'https://lexx-project.github.io',
   methods: ['GET', 'POST'],
@@ -18,7 +18,7 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
-// ✅ Serve frontend dari folder ../public
+// ✅ Path folder public untuk serve HTML dan statis
 const publicDir = path.join(__dirname, '..', 'public');
 app.use(express.static(publicDir));
 
@@ -27,17 +27,17 @@ const qrDir = path.join(__dirname, 'qr-codes');
 if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir);
 app.use('/qr-codes', express.static(qrDir));
 
-// ✅ Harga produk
+// ✅ Daftar harga produk
 const productPrices = {
   panel: 50000,
   bot: 30000,
   script: 100000
 };
 
-// ✅ Ambil QRIS dari Saweria
+// ✅ Fungsi mengambil QR Saweria
 async function getSaweriaQRCode(amount, productName) {
   const browser = await puppeteer.launch({
-    executablePath: puppeteer.executablePath(), // ✅ Gunakan Chromium internal
+    executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
@@ -104,14 +104,14 @@ async function getSaweriaQRCode(amount, productName) {
 
     return `/qr-codes/${filename}`;
   } catch (err) {
-    console.error("❌ Error:", err);
+    console.error("❌ Error:", err.message);
     throw err;
   } finally {
     await browser.close();
   }
 }
 
-// ✅ Endpoint: generate QR code
+// ✅ Endpoint POST: generate QR code
 app.post('/api/get-qr-code', async (req, res) => {
   try {
     const { type } = req.body;
@@ -132,7 +132,7 @@ app.post('/api/get-qr-code', async (req, res) => {
   }
 });
 
-// ✅ Endpoint: download QR
+// ✅ Endpoint GET: download QR
 app.get('/download-qr', (req, res) => {
   const filename = req.query.filename;
   const filePath = path.join(qrDir, filename);
