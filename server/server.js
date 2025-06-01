@@ -18,6 +18,10 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
+// ✅ Serve frontend dari folder ../public
+const publicDir = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDir));
+
 // ✅ Folder untuk menyimpan QR sementara
 const qrDir = path.join(__dirname, 'qr-codes');
 if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir);
@@ -115,7 +119,6 @@ app.post('/api/get-qr-code', async (req, res) => {
 
     const qrCodeUrl = await getSaweriaQRCode(amount, productName);
 
-    // Deteksi URL Railway dengan tepat
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const baseUrl = `${protocol}://${req.headers.host}`;
     res.json({ qrCodeUrl: `${baseUrl}${qrCodeUrl}` });
