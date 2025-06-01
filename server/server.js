@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 2009; // Railway pakai PORT dari env
+const port = process.env.PORT || 2009;
 
 // ✅ CORS agar bisa diakses dari GitHub Pages
 const corsOptions = {
@@ -15,7 +15,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Handle preflight
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // ✅ Folder untuk menyimpan QR sementara
@@ -115,8 +115,9 @@ app.post('/api/get-qr-code', async (req, res) => {
 
     const qrCodeUrl = await getSaweriaQRCode(amount, productName);
 
-    // Kembalikan URL absolut Railway
-    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN || `https://your-app-name.up.railway.app`;
+    // Deteksi URL Railway dengan tepat
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const baseUrl = `${protocol}://${req.headers.host}`;
     res.json({ qrCodeUrl: `${baseUrl}${qrCodeUrl}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
