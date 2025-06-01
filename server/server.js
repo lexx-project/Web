@@ -7,7 +7,7 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 2009;
 
-// ✅ CORS agar bisa diakses dari GitHub Page
+// ✅ CORS agar bisa diakses dari GitHub Pages
 const corsOptions = {
   origin: 'https://lexx-project.github.io',
   methods: ['GET', 'POST'],
