@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Detail Produk</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-top: 4px solid #3b82f6;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4">
+  <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-lg text-center">
+    <h1 id="product-name" class="text-3xl font-bold mb-2">Produk</h1>
+    <p id="product-price" class="text-lg text-gray-300 mb-6">Harga:</p>
+
+    <button 
+      onclick="orderNow()" 
+      id="order-button"
+      class="bg-blue-600 hover:bg-blue-700 transition font-semibold py-2 px-6 rounded-lg mb-4 w-full"
+    >
+      Pesan Sekarang
+    </button>
+
+    <!-- Spinner -->
+    <div id="spinner" class="my-4 hidden">
+      <div class="spinner"></div>
+      <p class="text-sm text-gray-400 mt-2">Memuat QRIS...</p>
+    </div>
+
+    <!-- QRIS Image -->
+    <div class="mt-6">
+      <img id="qr-image" alt="QRIS" class="mx-auto rounded-lg shadow-md hidden max-w-xs" />
+    </div>
+
+    <!-- Download Button -->
+    <button 
+      id="download-button" 
+      class="bg-green-600 hover:bg-green-700 transition font-semibold py-2 px-6 rounded-lg mt-4 hidden"
+    >
+      Unduh QRIS
+    </button>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type");
+
+    const products = {
+      panel: { name: "Panel Pterodactyl", price: 50000 },
+      bot: { name: "Sewa Bot WhatsApp", price: 30000 },
+      script: { name: "Script Bot WhatsApp", price: 100000 },
+    };
+
+    if (!type || !products[type]) {
+      document.getElementById("product-name").textContent = "Produk tidak ditemukan";
+      document.getElementById("order-button").style.display = "none";
+    } else {
+      const product = products[type];
+      document.getElementById("product-name").textContent = product.name;
+      document.getElementById("product-price").textContent = `Harga: Rp ${product.price.toLocaleString()}`;
+    }
+
+    async function orderNow() {
+      const spinner = document.getElementById("spinner");
+      const qrImage = document.getElementById("qr-image");
+      const downloadBtn = document.getElementById("download-button");
+
+      spinner.classList.remove("hidden");
+      qrImage.classList.add("hidden");
+      downloadBtn.classList.add("hidden");
+
+      try {
+        const response = await fetch("http://localhost:3000/api/get-qr-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type })
+        });
+
+        if (!response.ok) throw new Error("Gagal memuat QRIS");
+
+        const data = await response.json();
+        qrImage.src = data.qrCodeUrl;
+        qrImage.classList.remove("hidden");
+        downloadBtn.classList.remove("hidden");
+
+        downloadBtn.onclick = () => {
+          const filename = data.qrCodeUrl.split("/").pop();
+          const downloadUrl = `http://localhost:3000/download-qr?filename=${filename}`;
+
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
+      } catch (err) {
+        console.error(err);
+        alert("Gagal memproses QRIS.");
+      } finally {
+        spinner.classList.add("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
