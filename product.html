@@ -38,18 +38,15 @@
       Pesan Sekarang
     </button>
 
-    <!-- Spinner -->
     <div id="spinner" class="my-4 hidden">
       <div class="spinner"></div>
       <p class="text-sm text-gray-400 mt-2">Memuat QRIS...</p>
     </div>
 
-    <!-- QRIS Image -->
     <div class="mt-6">
       <img id="qr-image" alt="QRIS" class="mx-auto rounded-lg shadow-md hidden max-w-xs" />
     </div>
 
-    <!-- Download Button -->
     <button 
       id="download-button" 
       class="bg-green-600 hover:bg-green-700 transition font-semibold py-2 px-6 rounded-lg mt-4 hidden"
@@ -59,69 +56,73 @@
   </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get("type");
+    document.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const type = params.get("type");
 
-    const products = {
-      panel: { name: "Panel Pterodactyl", price: 50000 },
-      bot: { name: "Sewa Bot WhatsApp", price: 30000 },
-      script: { name: "Script Bot WhatsApp", price: 100000 },
-    };
+      const products = {
+        panel: { name: "Panel Pterodactyl", price: 50000 },
+        bot: { name: "Sewa Bot WhatsApp", price: 30000 },
+        script: { name: "Script Bot WhatsApp", price: 100000 },
+      };
 
-    if (!type || !products[type]) {
-      document.getElementById("product-name").textContent = "Produk tidak ditemukan";
-      document.getElementById("order-button").style.display = "none";
-    } else {
       const product = products[type];
+
+      if (!product) {
+        document.getElementById("product-name").textContent = "Produk tidak ditemukan";
+        document.getElementById("order-button").style.display = "none";
+        return;
+      }
+
+      // Tampilkan produk
       document.getElementById("product-name").textContent = product.name;
       document.getElementById("product-price").textContent = `Harga: Rp ${product.price.toLocaleString()}`;
-    }
 
-    async function orderNow() {
-      const spinner = document.getElementById("spinner");
-      const qrImage = document.getElementById("qr-image");
-      const downloadBtn = document.getElementById("download-button");
+      window.orderNow = async function() {
+        const spinner = document.getElementById("spinner");
+        const qrImage = document.getElementById("qr-image");
+        const downloadBtn = document.getElementById("download-button");
 
-      spinner.classList.remove("hidden");
-      qrImage.classList.add("hidden");
-      downloadBtn.classList.add("hidden");
+        spinner.classList.remove("hidden");
+        qrImage.classList.add("hidden");
+        downloadBtn.classList.add("hidden");
 
-      try {
-        const response = await fetch("https://ayame.inipanel.my.id/api/get-qr-code", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ type })
-        });
+        try {
+          const response = await fetch("https://ayame.inipanel.my.id/api/get-qr-code", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ type })
+          });
 
-        if (!response.ok) throw new Error("Gagal memuat QRIS");
+          if (!response.ok) throw new Error("Gagal memuat QRIS");
 
-        const data = await response.json();
-        qrImage.src = data.qrCodeUrl;
-        qrImage.classList.remove("hidden");
-        downloadBtn.classList.remove("hidden");
+          const data = await response.json();
+          qrImage.src = data.qrCodeUrl;
+          qrImage.classList.remove("hidden");
+          downloadBtn.classList.remove("hidden");
 
-        // 🔧 Gunakan domain dari data.qrCodeUrl, bukan localhost!
-        downloadBtn.onclick = () => {
-          const filename = data.qrCodeUrl.split("/").pop();
-          const baseUrl = new URL(data.qrCodeUrl).origin;
-          const downloadUrl = `${baseUrl}/download-qr?filename=${filename}`;
+          downloadBtn.onclick = () => {
+            const filename = data.qrCodeUrl.split("/").pop();
+            const baseUrl = new URL(data.qrCodeUrl).origin;
+            const downloadUrl = `${baseUrl}/download-qr?filename=${filename}`;
 
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        };
-      } catch (err) {
-        console.error(err);
-        alert("Gagal memproses QRIS.");
-      } finally {
-        spinner.classList.add("hidden");
-      }
-    }
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+        } catch (err) {
+          console.error(err);
+          alert("Gagal memproses QRIS.");
+        } finally {
+          spinner.classList.add("hidden");
+        }
+      };
+    });
   </script>
 </body>
 </html>
