@@ -5,28 +5,32 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 3000;
-const host = '0.0.0.0'; // agar bisa diakses publik
+const port = process.env.PORT || 2009; // Railway pakai PORT dari env
 
-// ✅ Allow CORS dari GitHub Pages
-app.use(cors({
-  origin: 'https://lexx-project.github.io'
-}));
+// ✅ CORS agar bisa diakses dari GitHub Pages
+const corsOptions = {
+  origin: 'https://lexx-project.github.io',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+};
 
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight
 app.use(express.json());
 
-// ✅ Pastikan folder qr-codes tersedia
+// ✅ Folder untuk menyimpan QR sementara
 const qrDir = path.join(__dirname, 'qr-codes');
 if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir);
-
 app.use('/qr-codes', express.static(qrDir));
 
+// ✅ Harga produk
 const productPrices = {
   panel: 50000,
   bot: 30000,
   script: 100000
 };
 
+// ✅ Ambil QRIS dari Saweria
 async function getSaweriaQRCode(amount, productName) {
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -37,9 +41,7 @@ async function getSaweriaQRCode(amount, productName) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
 
-    await page.goto('https://saweria.co/Lexyevandra', {
-      waitUntil: 'networkidle0'
-    });
+    await page.goto('https://saweria.co/Lexyevandra', { waitUntil: 'networkidle0' });
 
     await page.waitForSelector('input[name="amount"]', { timeout: 10000 });
     await page.type('input[name="amount"]', amount.toString());
@@ -104,22 +106,24 @@ async function getSaweriaQRCode(amount, productName) {
   }
 }
 
+// ✅ Endpoint: generate QR code
 app.post('/api/get-qr-code', async (req, res) => {
   try {
     const { type } = req.body;
-    const productName = type || 'Produk Tanpa Nama';
+    const productName = type || 'Produk Tidak Diketahui';
     const amount = productPrices[type] || 15000;
 
-    const qrPath = await getSaweriaQRCode(amount, productName);
+    const qrCodeUrl = await getSaweriaQRCode(amount, productName);
 
-    // ✅ Kirim URL full agar bisa digunakan dari GitHub Pages
-    const fullUrl = `${req.protocol}://${req.headers.host}${qrPath}`;
-    res.json({ qrCodeUrl: fullUrl });
+    // Kembalikan URL absolut Railway
+    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN || `https://your-app-name.up.railway.app`;
+    res.json({ qrCodeUrl: `${baseUrl}${qrCodeUrl}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// ✅ Endpoint: download QR
 app.get('/download-qr', (req, res) => {
   const filename = req.query.filename;
   const filePath = path.join(qrDir, filename);
@@ -131,6 +135,7 @@ app.get('/download-qr', (req, res) => {
   }
 });
 
-app.listen(port, host, () => {
-  console.log(`✅ Server berjalan di http://${host}:${port}`);
+// ✅ Jalankan server
+app.listen(port, () => {
+  console.log(`✅ Server berjalan di port ${port}`);
 });
