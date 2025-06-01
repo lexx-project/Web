@@ -1,14 +1,8 @@
 {
-  "name": "saweria-qr-server",
+  "name": "saweria-qr-wrapper",
   "version": "1.0.0",
-  "description": "Server untuk mengotomatisasi pengambilan QR code dari Saweria",
-  "main": "server.js",
+  "description": "Wrapper untuk menjalankan server Saweria dari folder /server",
   "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "puppeteer": "^21.5.2"
+    "start": "cd server && npm install && node server.js"
   }
 }
