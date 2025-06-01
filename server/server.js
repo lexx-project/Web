@@ -7,6 +7,7 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 2009;
 
+// ✅ CORS agar bisa diakses dari GitHub Pages
 const corsOptions = {
   origin: 'https://lexx-project.github.io',
   methods: ['GET', 'POST'],
@@ -17,22 +18,26 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
+// ✅ Serve frontend dari folder ../public
 const publicDir = path.join(__dirname, '..', 'public');
 app.use(express.static(publicDir));
 
+// ✅ Folder untuk menyimpan QR sementara
 const qrDir = path.join(__dirname, 'qr-codes');
 if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir);
 app.use('/qr-codes', express.static(qrDir));
 
+// ✅ Harga produk
 const productPrices = {
   panel: 50000,
   bot: 30000,
   script: 100000
 };
 
+// ✅ Ambil QRIS dari Saweria
 async function getSaweriaQRCode(amount, productName) {
-  console.log(`▶️ Membuka browser untuk ${productName} (Rp${amount})...`);
   const browser = await puppeteer.launch({
+    executablePath: puppeteer.executablePath(), // ✅ Gunakan Chromium internal
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
@@ -40,9 +45,8 @@ async function getSaweriaQRCode(amount, productName) {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
-    await page.goto('https://saweria.co/Lexyevandra', { waitUntil: 'networkidle0' });
 
-    console.log('✅ Halaman Saweria dibuka');
+    await page.goto('https://saweria.co/Lexyevandra', { waitUntil: 'networkidle0' });
 
     await page.waitForSelector('input[name="amount"]', { timeout: 10000 });
     await page.type('input[name="amount"]', amount.toString());
@@ -56,12 +60,9 @@ async function getSaweriaQRCode(amount, productName) {
       await checkboxes[1].click();
     }
 
-    console.log('✅ Form diisi');
-
     const qrisButton = await page.$x('//img[contains(@alt, "QRIS") or contains(@src, "qris")]');
     if (qrisButton.length > 0) {
       await qrisButton[0].evaluate(el => el.closest('button, div')?.click());
-      console.log('✅ Klik tombol QRIS');
     } else {
       throw new Error("❌ Tombol QRIS tidak ditemukan");
     }
@@ -69,7 +70,6 @@ async function getSaweriaQRCode(amount, productName) {
     const submitBtn = await page.$x("//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'kirim dukungan')]");
     if (submitBtn.length > 0) {
       await submitBtn[0].click();
-      console.log('✅ Klik tombol Kirim Dukungan');
     } else {
       throw new Error("❌ Tombol 'Kirim Dukungan' tidak ditemukan");
     }
@@ -102,38 +102,37 @@ async function getSaweriaQRCode(amount, productName) {
       }
     });
 
-    console.log('✅ Screenshot QRIS berhasil');
     return `/qr-codes/${filename}`;
   } catch (err) {
-    console.error("❌ Gagal memproses QR:", err.message);
+    console.error("❌ Error:", err);
     throw err;
   } finally {
     await browser.close();
   }
 }
 
+// ✅ Endpoint: generate QR code
 app.post('/api/get-qr-code', async (req, res) => {
-  const { type } = req.body;
-  console.log("📨 Request /api/get-qr-code:", type);
-
-  if (!type || !productPrices[type]) {
-    return res.status(400).json({ error: "Tipe produk tidak valid" });
-  }
-
-  const productName = type;
-  const amount = productPrices[type];
-
   try {
+    const { type } = req.body;
+    const productName = type || 'Produk Tidak Diketahui';
+    const amount = productPrices[type] || 15000;
+
+    console.log(`📨 Request /api/get-qr-code: ${type}`);
+    console.log(`▶️ Membuka browser untuk ${productName} (Rp${amount})...`);
+
     const qrCodeUrl = await getSaweriaQRCode(amount, productName);
+
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const baseUrl = `${protocol}://${req.headers.host}`;
     res.json({ qrCodeUrl: `${baseUrl}${qrCodeUrl}` });
   } catch (error) {
     console.error("❌ Gagal generate QRIS:", error.message);
-    res.status(500).json({ error: "Gagal generate QRIS" });
+    res.status(500).json({ error: error.message });
   }
 });
 
+// ✅ Endpoint: download QR
 app.get('/download-qr', (req, res) => {
   const filename = req.query.filename;
   const filePath = path.join(qrDir, filename);
@@ -145,6 +144,7 @@ app.get('/download-qr', (req, res) => {
   }
 });
 
+// ✅ Jalankan server
 app.listen(port, () => {
   console.log(`✅ Server berjalan di port ${port}`);
 });
