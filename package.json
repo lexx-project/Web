@@ -1,16 +1,8 @@
 {
-  "name": "project-sc",
+  "name": "saweria-qr-wrapper",
   "version": "1.0.0",
-  "main": "script.js",
+  "description": "Wrapper untuk menjalankan server Saweria dari folder /server",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "express": "^5.1.0",
-    "puppeteer": "^24.9.0"
+    "start": "cd server && npm install && node server.js"
   }
 }
